@@ -1,36 +1,106 @@
+#[warn(unused_must_use)]
+#[macro_use]
+extern crate serde_derive;
+
+use std::io;
+use std::io::Write;
+use std::process;
+
+mod blockchain;
+
 fn main() {
-    let mut blockchain = Blockchain::new();
+    let mut miner_addr = String::new();
+    let mut difficulty = String::new();
+    let mut choice = String::new();
 
-    let genesis_block = Block::new(
-        "0".to_owned(),
-        vec![Transaction {
-            sender: String::from("Naman"),
-            receiver: String::from("Mihir"),
-            amount: 2000.0,
-        }],
-    );
+    print!("input a miner address: ");
+    io::stdout().flush();
+    io::stdin().read_line(&mut miner_addr);
+    print!("Difficulty: ");
+    io::stdout().flush();
+    io::stdin().read_line(&mut difficulty);
+    let diff = difficulty
+        .trim()
+        .parse::<u32>()
+        .expect("we need an integer");
+    println!("generating genesis block! ");
+    let mut chain = blockchain::Chain::new(miner_addr.trim().to_string(), diff);
 
-    let first_block = Block::new(
-        genesis_block.hash.to_owned(),
-        vec![Transaction {
-            sender: String::from("Mihir"),
-            receiver: String::from("Gulfam"),
-            amount: 2500.0,
-        }],
-    );
+    loop {
+        println!("Menu");
+        println!("1) New Transaction");
+        println!("2) Mine block");
+        println!("3) Change Difficulty");
+        println!("4) Change Reward");
+        println!("0) Exit");
+        print!("Enter your choice: ");
+        io::stdout().flush();
+        choice.clear();
+        io::stdin().read_line(&mut choice);
+        println!("");
 
-    let second_block = Block::new(
-        first_block.hash.to_owned(),
-        vec![Transaction {
-            sender: String::from("Michal"),
-            receiver: String::from("Dan"),
-            amount: 1000.0,
-        }],
-    );
+        match choice.trim().parse().unwrap() {
+            0 => {
+                println!("exiting!");
+                process::exit(0);
+            }
+            1 => {
+                let mut sender = String::new();
+                let mut receiver = String::new();
+                let mut amount = String::new();
 
-    blockchain.add_block(genesis_block);
-    blockchain.add_block(first_block);
-    blockchain.add_block(second_block);
+                print!("enter sender address:");
+                io::stdout().flush();
+                io::stdin().read_line(&mut sender);
+                print!("enter receiver address: ");
+                io::stdout().flush();
+                io::stdin().read_line(&mut receiver);
+                print!("Enter amount: ");
+                io::stdout().flush();
+                io::stdin().read_line(&mut amount);
 
-    println!("{:#?}", blockchain);
+                let res = chain.new_transaction(
+                    sender.trim().to_string(),
+                    receiver.trim().to_string(),
+                    amount.trim().parse().unwrap(),
+                );
+
+                match res {
+                    true => println!("transaction added"),
+                    false => println!("transaction failed"),
+                }
+            }
+            2 => {
+                println!("Generating block");
+                let res = chain.generate_new_block();
+                match res {
+                    true => println!("Block generated successfully"),
+                    false => println!("Block generation failed"),
+                }
+            }
+            3 => {
+                let mut new_diff = String::new();
+                print!("enter new difficulty: ");
+                io::stdout().flush();
+                io::stdin().read_line(&mut new_diff);
+                let res = chain.update_difficulty(new_diff.trim().parse().unwrap());
+                match res {
+                    true => println!("Updated Difficulty"),
+                    false => println!("Failed Update Difficulty"),
+                }
+            }
+            4 => {
+                let mut new_reward = String::new();
+                print!("Enter new reward: ");
+                io::stdout().flush();
+                io::stdin().read_line(&mut new_reward);
+                let res = chain.update_reward(new_reward.trim().parse().unwrap());
+                match res {
+                    true => println!("Updated reward"),
+                    false => println!("Failed Update reward"),
+                }
+            }
+            _ => println!("Invalid option please retry"),
+        }
+    }
 }
