@@ -89,6 +89,7 @@ impl Chain {
             difficulty: self.difficulty,
         };
 
+        
         let reward_trans = Transaction {
             sender: String::from("Root"),
             receiver: self.miner_addr.clone(),
